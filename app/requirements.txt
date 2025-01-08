@@ -1,0 +1,11 @@
+SQLAlchemy==2.0.36
+fastapi==0.115.5
+passlib==1.7.4
+python-dotenv==1.0.1
+pydantic==2.10.2
+redis==5.2.0
+python_multipart==0.0.17
+asyncpg==0.29.0
+uvicorn==0.32.0
+pyjwt==2.10.0
+aio-pika==9.4.3

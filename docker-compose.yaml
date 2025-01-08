@@ -1,0 +1,86 @@
+services:
+  postgres:
+    image: postgres:15
+    ports:
+      - "5432:5432"
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=adminpassword
+      - POSTGRES_DB=mvideo_db
+    networks:
+      - mvideo_network
+
+  redis:
+    image: redis:alpine
+    ports:
+      - "6389:6379"
+    networks:
+      - mvideo_network
+
+  app1:
+    build: ./app
+    restart: always
+    volumes:
+      - ./app:/app
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+    environment:
+      - DATABASE_URL=postgresql+asyncpg://postgres:adminpassword@postgres:5432/mvideo_db
+    networks:
+      - mvideo_network
+
+  app2:
+    build: ./app
+    restart: always
+    volumes:
+      - ./app:/app
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+    environment:
+      - DATABASE_URL=postgresql+asyncpg://postgres:adminpassword@postgres:5432/mvideo_db
+    networks:
+      - mvideo_network
+
+  nginx:
+    image: nginx:latest
+    ports:
+      - "8008:80"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf
+    depends_on:
+      - app1
+      - app2
+    networks:
+      - mvideo_network
+
+  rabbitmq:
+    image: "rabbitmq:3-management"
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    networks:
+      - mvideo_network
+    healthcheck:
+      test: ["CMD", "rabbitmqctl", "status"]
+      interval: 10s
+      timeout: 10s
+      retries: 5
+
+  parser_worker:
+    build: ./parser_worker
+    restart: always
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+    networks:
+      - mvideo_network
+
+networks:
+  mvideo_network:
+
+volumes:
+  pg_data:
